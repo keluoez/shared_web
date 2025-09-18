@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P音乐共享系统</title>
+    <link rel="stylesheet" href="static/css/style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        // Tailwind CSS 配置
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366F1', // 紫蓝色作为主色调
+                        secondary: '#8B5CF6', // 紫色作为辅助色
+                        accent: '#EC4899', // 粉色作为强调色
+                        dark: '#1F2937',
+                        light: '#F3F4F6'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                },
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .bg-gradient-primary {
+                background: linear-gradient(135deg, var(--tw-gradient-stops));
+            }
+            .backdrop-blur-sm {
+                backdrop-filter: blur(4px);
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.1), 0 10px 10px -5px rgba(99, 102, 241, 0.04);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-dark">
+    <!-- 导航栏 -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-200">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa fa-music text-primary text-2xl"></i>
+                <h1 class="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">P2P音乐共享</h1>
+            </div>
+            <div class="hidden md:flex items-center space-x-6">
+                <a href="#discover" class="text-gray-600 hover:text-primary transition-colors">发现音乐</a>
+                <a href="#share" class="text-gray-600 hover:text-primary transition-colors">共享音乐</a>
+                <a href="#downloads" class="text-gray-600 hover:text-primary transition-colors">我的下载</a>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                    <i class="fa fa-moon-o text-gray-600"></i>
+                </button>
+                <div id="connection-status" class="flex items-center space-x-2">
+                    <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse-slow"></span>
+                    <span class="text-sm text-gray-600">未连接</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="container mx-auto px-4 pt-24 pb-16">
+        <!-- 欢迎区 -->
+        <section class="mb-12 text-center">
+            <h2 class="text-[clamp(2rem,5vw,3.5rem)] font-bold text-dark mb-4 text-shadow">
+                发现<span class="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">无限</span>音乐世界
+            </h2>
+            <p class="text-gray-600 max-w-2xl mx-auto mb-8 text-lg">
+                通过P2P技术直接共享和发现音乐，无需中央服务器存储，让音乐自由流动
+            </p>
+            <div id="node-info" class="bg-white rounded-xl shadow-lg p-6 inline-block">
+                <p class="text-gray-600 mb-2">您的节点ID:</p>
+                <div class="bg-gray-100 p-3 rounded-lg font-mono text-sm break-all max-w-md">
+                    <span id="node-id">加载中...</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 搜索区域 -->
+        <section id="discover" class="mb-12">
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                <h3 class="text-xl font-bold mb-4 flex items-center">
+                    <i class="fa fa-search text-primary mr-2"></i> 搜索音乐
+                </h3>
+                <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+                    <input 
+                        type="text" 
+                        id="search-input" 
+                        placeholder="输入歌曲名或艺术家进行搜索..." 
+                        class="flex-grow px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                    >
+                    <button 
+                        id="search-btn" 
+                        class="bg-primary hover:bg-primary/90 text-white font-medium px-6 py-3 rounded-lg transition-colors flex items-center justify-center"
+                    >
+                        <i class="fa fa-search mr-2"></i> 搜索
+                    </button>
+                    <button 
+                        id="clear-search-btn" 
+                        class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-4 py-3 rounded-lg transition-colors flex items-center justify-center"
+                    >
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 搜索结果 -->
+            <div id="search-results" class="hidden">
+                <h3 class="text-xl font-bold mb-4 flex items-center">
+                    <i class="fa fa-list text-primary mr-2"></i> 搜索结果
+                </h3>
+                <div id="results-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- 搜索结果将在这里动态生成 -->
+                </div>
+                <div id="no-results" class="hidden py-12 text-center text-gray-500">
+                    <i class="fa fa-music text-4xl mb-4 text-gray-300"></i>
+                    <p>未找到匹配的音乐文件</p>
+                </div>
+            </div>
+
+            <!-- 浏览所有音乐 -->
+            <div id="all-music" class="mt-12">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold flex items-center">
+                        <i class="fa fa-list-alt text-primary mr-2"></i> 所有共享音乐
+                    </h3>
+                    <button id="refresh-all-music" class="text-primary hover:text-primary/80 transition-colors flex items-center text-sm">
+                        <i class="fa fa-refresh mr-1"></i> 刷新
+                    </button>
+                </div>
+                <div id="all-music-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- 所有音乐将在这里动态生成 -->
+                </div>
+                <div id="no-all-music" class="py-12 text-center text-gray-500">
+                    <i class="fa fa-music text-4xl mb-4 text-gray-300"></i>
+                    <p>暂无共享音乐</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 文件共享区域 -->
+        <section id="share" class="mb-12">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-bold mb-4 flex items-center">
+                    <i class="fa fa-upload text-secondary mr-2"></i> 共享音乐
+                </h3>
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer" id="file-drop-area">
+                    <i class="fa fa-cloud-upload text-4xl text-gray-400 mb-4"></i>
+                    <p class="text-gray-600 mb-2">点击或拖拽音乐文件到此处</p>
+                    <p class="text-gray-400 text-sm">支持 MP3, WAV, FLAC 等格式</p>
+                    <input type="file" id="file-input" class="hidden" accept=".mp3,.wav,.flac,.ogg,.aac">
+                </div>
+
+                <!-- 已共享文件列表 -->
+                <div id="shared-files" class="mt-8">
+                    <h4 class="text-lg font-semibold mb-4">已共享的文件</h4>
+                    <div id="shared-files-list" class="space-y-3">
+                        <!-- 已共享文件将在这里动态生成 -->
+                    </div>
+                    <div id="no-shared-files" class="py-6 text-center text-gray-500">
+                        <p>您还没有共享任何音乐文件</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 下载管理区域 -->
+        <section id="downloads">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-bold mb-4 flex items-center">
+                    <i class="fa fa-download text-accent mr-2"></i> 下载管理
+                </h3>
+                
+                <!-- 正在下载 -->
+                <div id="active-downloads" class="mb-8">
+                    <h4 class="text-lg font-semibold mb-4">正在下载</h4>
+                    <div id="downloads-list" class="space-y-4">
+                        <!-- 下载项将在这里动态生成 -->
+                    </div>
+                    <div id="no-active-downloads" class="py-6 text-center text-gray-500">
+                        <p>当前没有正在进行的下载</p>
+                    </div>
+                </div>
+
+                <!-- 已完成下载 -->
+                <div id="completed-downloads">
+                    <h4 class="text-lg font-semibold mb-4">已完成下载</h4>
+                    <div id="completed-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- 已完成下载将在这里动态生成 -->
+                    </div>
+                    <div id="no-completed-downloads" class="py-6 text-center text-gray-500">
+                        <p>您还没有完成的下载</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center space-x-2 mb-4 md:mb-0">
+                    <i class="fa fa-music text-primary text-2xl"></i>
+                    <span class="text-xl font-bold">P2P音乐共享系统</span>
+                </div>
+                <div class="text-gray-400 text-sm">
+                    © 2023 P2P音乐共享系统 - 基于WebRTC技术的去中心化音乐共享平台
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 通知弹窗 -->
+    <div id="notification" class="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg p-4 transform translate-y-full opacity-0 transition-all duration-300 max-w-xs">
+        <div class="flex items-start">
+            <div id="notification-icon" class="text-primary mr-3 mt-1">
+                <i class="fa fa-info-circle"></i>
+            </div>
+            <div class="flex-1">
+                <h4 id="notification-title" class="font-semibold mb-1">通知标题</h4>
+                <p id="notification-message" class="text-sm text-gray-600">通知内容</p>
+            </div>
+            <button id="notification-close" class="text-gray-400 hover:text-gray-600 ml-2">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- JavaScript文件 -->
+    <script src="static/js/app.js"></script>
+</body>
+</html>
